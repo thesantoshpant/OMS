@@ -4,7 +4,7 @@ import axios from "axios";
 // API base URL is overridable at build time (Vite) via VITE_API_URL so the same
 // build can target local Docker or the deployed reverse proxy.
 const env = import.meta.env as unknown as Record<string, string | undefined>;
-const API_BASE_URL = env.VITE_API_URL || "https://euclid.santoshpant.com.np/oms/api";
+const API_BASE_URL = env.VITE_API_URL || "https://oms.dhokdiya.com/api";
 
 // WebSocket base for the live market-data feed (http->ws, https->wss).
 export const WS_BASE_URL = API_BASE_URL.replace(/^http/, "ws");

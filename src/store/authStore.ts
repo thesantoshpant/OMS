@@ -1,7 +1,13 @@
 import { create } from "zustand";
 import axios from "axios";
 
-const API_BASE_URL = "https://projects.santosh.codes/oms/api";
+// API base URL is overridable at build time (Vite) via VITE_API_URL so the same
+// build can target local Docker or the deployed reverse proxy.
+const env = import.meta.env as unknown as Record<string, string | undefined>;
+const API_BASE_URL = env.VITE_API_URL || "https://euclid.santoshpant.com.np/oms/api";
+
+// WebSocket base for the live market-data feed (http->ws, https->wss).
+export const WS_BASE_URL = API_BASE_URL.replace(/^http/, "ws");
 
 export interface AuthStore {
   token: string | null;
@@ -112,7 +118,7 @@ export const useAuthStore = create<AuthStore>(
       const state = useAuthStore.getState();
       return !!state.token && !!state.userId;
     },
-  })
+  }),
 );
 
 // Create axios instance with auth header
@@ -131,3 +137,21 @@ apiClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// On 401 (expired/invalid token) clear auth and bounce to login. Login/signup
+// use raw axios (not apiClient), so their 401s are unaffected by this.
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("email");
+      useAuthStore.setState({ token: null, userId: null, email: null });
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  },
+);

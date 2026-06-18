@@ -14,25 +14,32 @@ export interface OrderBook {
   asks: OrderLevel[];
 }
 
+export type TimeInForce = "GTC" | "IOC" | "FOK" | "POST_ONLY";
+
 export interface TradeRequest {
+  client_order_id?: string;
   symbol: string;
   side: "BUY" | "SELL";
   type: "MARKET" | "LIMIT";
+  tif?: TimeInForce;
   quantity: number;
   limit_price?: number;
 }
 
 export interface OrderResponse {
   order_id: number;
+  client_order_id?: string;
   symbol: string;
   side: string;
   type: string;
+  tif: string;
   quantity: number;
-  limit_price: number;
+  filled_qty: number;
+  avg_price: number;
   arrival_mid: number;
-  exec_price: number;
-  slippage: number;
+  slippage_bps: number;
   status: string;
+  duplicate?: boolean;
 }
 
 export interface AnalyticsTrade {
@@ -41,6 +48,7 @@ export interface AnalyticsTrade {
   side: string;
   type: string;
   quantity: number;
+  remaining_qty?: number;
   limit_price?: number;
   status: string;
   arrival_mid?: number;
@@ -70,6 +78,24 @@ interface DashboardStats {
   portfolio_value: number;
 }
 
+export interface AlgoRequest {
+  symbol: string;
+  side: "BUY" | "SELL";
+  algo: "TWAP" | "VWAP" | "ICEBERG";
+  total_qty: number;
+  slices: number;
+  duration_sec: number;
+}
+
+export interface SymbolTCA {
+  symbol: string;
+  filled_qty: number;
+  notional_usd: number;
+  avg_fill_price: number;
+  avg_slippage_bps: number;
+  cost_usd: number;
+}
+
 interface TradingStore {
   orderBook: OrderBook | null;
   selectedSymbol: string | null;
@@ -80,14 +106,18 @@ interface TradingStore {
   stats: SymbolStats | null;
   lastOrder: OrderResponse | null;
   dashboardStats: DashboardStats | null;
+  tca: SymbolTCA[];
 
   setSelectedSymbol: (symbol: string) => void;
   setSelectedSide: (side: "BUY" | "SELL") => void;
   fetchOrderBook: (symbol: string) => Promise<void>;
   submitTrade: (trade: TradeRequest) => Promise<void>;
+  cancelOrder: (symbol: string, orderId: number) => Promise<void>;
+  submitAlgo: (req: AlgoRequest) => Promise<void>;
   fetchAnalytics: () => Promise<void>;
   fetchAllTrades: () => Promise<void>;
   fetchDashboardStats: () => Promise<void>;
+  fetchTCA: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -101,6 +131,7 @@ export const useTradingStore = create<TradingStore>((set) => ({
   stats: null,
   lastOrder: null,
   dashboardStats: null,
+  tca: [],
 
   setSelectedSymbol: (symbol: string) => set({ selectedSymbol: symbol }),
   setSelectedSide: (side: "BUY" | "SELL") => set({ selectedSide: side }),
@@ -126,15 +157,33 @@ export const useTradingStore = create<TradingStore>((set) => ({
   submitTrade: async (trade: TradeRequest) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.post("/trade/", trade);
+      // Attach an idempotency key so a retried/double-clicked submit is a no-op.
+      const body: TradeRequest = {
+        ...trade,
+        client_order_id: trade.client_order_id ?? crypto.randomUUID(),
+      };
+      const response = await apiClient.post("/trade/", body);
       set({
         lastOrder: response.data,
         isLoading: false,
       });
     } catch (err: any) {
+      const data = err.response?.data;
       const errorMsg =
-        err.response?.data || err.message || "Trade submission failed";
+        typeof data === "string" ? data : data?.message || err.message || "Trade submission failed";
       set({ error: errorMsg, isLoading: false });
+      throw err;
+    }
+  },
+
+  cancelOrder: async (symbol: string, orderId: number) => {
+    try {
+      await apiClient.post("/trade/cancel", { symbol, order_id: orderId });
+    } catch (err: any) {
+      const data = err.response?.data;
+      const errorMsg =
+        typeof data === "string" ? data : data?.message || err.message || "Cancel failed";
+      set({ error: errorMsg });
       throw err;
     }
   },
@@ -149,8 +198,9 @@ export const useTradingStore = create<TradingStore>((set) => ({
         isLoading: false,
       });
     } catch (err: any) {
+      const data = err.response?.data;
       const errorMsg =
-        err.response?.data || err.message || "Failed to fetch analytics";
+        typeof data === "string" ? data : err.message || "Failed to fetch analytics";
       set({ error: errorMsg, isLoading: false });
       // Don't throw, just let UI show error or empty state
     }
@@ -166,8 +216,9 @@ export const useTradingStore = create<TradingStore>((set) => ({
         isLoading: false,
       });
     } catch (err: any) {
+      const data = err.response?.data;
       const errorMsg =
-        err.response?.data || err.message || "Failed to fetch trades";
+        typeof data === "string" ? data : err.message || "Failed to fetch trades";
       set({ error: errorMsg, isLoading: false });
     }
   },
@@ -181,6 +232,29 @@ export const useTradingStore = create<TradingStore>((set) => ({
       });
     } catch (err: any) {
       console.error("Failed to fetch dashboard stats:", err);
+    }
+  },
+
+  submitAlgo: async (req: AlgoRequest) => {
+    set({ isLoading: true, error: null });
+    try {
+      await apiClient.post("/trade/algo", req);
+      set({ isLoading: false });
+    } catch (err: any) {
+      const data = err.response?.data;
+      const errorMsg =
+        typeof data === "string" ? data : data?.message || err.message || "Algo start failed";
+      set({ error: errorMsg, isLoading: false });
+      throw err;
+    }
+  },
+
+  fetchTCA: async () => {
+    try {
+      const response = await apiClient.get("/me/tca");
+      set({ tca: response.data ?? [] });
+    } catch {
+      // leave previous TCA on transient error
     }
   },
 

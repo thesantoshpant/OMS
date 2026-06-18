@@ -56,9 +56,9 @@ export const TopNav = ({ symbols, selectedSymbol, onSelectSymbol, connected = fa
 
   return (
     <header className="flex items-center justify-between h-9 px-3 border-b border-line bg-bg shrink-0">
-      <div className="flex items-center gap-5 h-full">
-        <span className="mono font-bold text-accent tracking-tight text-[15px]">OMS</span>
-        <nav className="flex h-full items-stretch">
+      <div className="flex items-center gap-5 h-full min-w-0">
+        <span className="mono font-bold text-accent tracking-tight text-[15px] shrink-0">OMS</span>
+        <nav className="flex h-full items-stretch min-w-0 overflow-x-auto">
           {symbols.map((s) => {
             const active = s === selectedSymbol;
             const mid = mids[s];
@@ -88,7 +88,7 @@ export const TopNav = ({ symbols, selectedSymbol, onSelectSymbol, connected = fa
         </nav>
       </div>
 
-      <div className="flex items-center gap-4 h-full">
+      <div className="flex items-center gap-4 h-full shrink-0">
         <div className="flex items-center gap-3">
           <Link to="/dashboard" className={`label-caps ${onTerminal ? "!text-accent" : "hover:!text-ink"}`}>
             Terminal

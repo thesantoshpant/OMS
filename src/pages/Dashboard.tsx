@@ -24,7 +24,7 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-bg text-ink overflow-hidden">
+    <div className="dash-root bg-bg text-ink">
       <TopNav
         symbols={SYMBOLS}
         selectedSymbol={selectedSymbol}
@@ -32,30 +32,42 @@ export const Dashboard = () => {
         connected={connected}
       />
 
-      <div
-        className="grid flex-1 min-h-0"
-        style={{ gridTemplateColumns: '320px minmax(0, 1fr) 340px', gridTemplateRows: 'minmax(0, 1fr) 190px' }}
-      >
+      <div className="dash-body">
         {/* Order book — left */}
-        <div className="border-r border-line min-h-0 overflow-hidden" style={{ gridColumn: '1', gridRow: '1' }}>
+        <div
+          className="border-b lg:border-b-0 lg:border-r border-line min-h-0 overflow-hidden h-[380px] lg:h-auto"
+          style={{ gridColumn: '1', gridRow: '1' }}
+        >
           <OrderBook symbol={selectedSymbol} book={book} connected={connected} />
         </div>
 
         {/* Trade tape — center */}
-        <div className="border-r border-line min-h-0 overflow-hidden" style={{ gridColumn: '2', gridRow: '1' }}>
+        <div
+          className="border-b lg:border-b-0 lg:border-r border-line min-h-0 overflow-hidden h-[300px] lg:h-auto"
+          style={{ gridColumn: '2', gridRow: '1' }}
+        >
           <TradeTape trades={trades} />
         </div>
 
-        {/* Order entry + algo — right, single scrollable column */}
-        <div className="min-h-0 overflow-y-auto flex flex-col" style={{ gridColumn: '3', gridRow: '1' }}>
-          <div className="border-b border-line">
+        {/* Order entry + algo — right. Flows full-height on mobile (page scrolls);
+            scrolls internally on desktop. */}
+        <div
+          className="border-b lg:border-b-0 border-line min-h-0 flex flex-col lg:overflow-y-auto"
+          style={{ gridColumn: '3', gridRow: '1' }}
+        >
+          <div className="border-b border-line shrink-0">
             <TradeForm symbol={selectedSymbol} currentPrice={currentPrice} onSuccess={handleOrderPlaced} />
           </div>
-          <AlgoForm symbol={selectedSymbol} onStarted={handleOrderPlaced} />
+          <div className="shrink-0">
+            <AlgoForm symbol={selectedSymbol} onStarted={handleOrderPlaced} />
+          </div>
         </div>
 
         {/* Positions / Open Orders / Fills — full width, bottom */}
-        <div className="border-t border-line min-h-0 overflow-hidden" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
+        <div
+          className="border-t border-line min-h-0 overflow-hidden h-[420px] lg:h-auto"
+          style={{ gridColumn: '1 / 4', gridRow: '2' }}
+        >
           <BottomTabs refreshKey={refreshKey} />
         </div>
       </div>

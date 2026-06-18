@@ -152,12 +152,12 @@ export const BottomTabs = ({ refreshKey }: BottomTabsProps) => {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-auto min-h-0">
         {tab === 'positions' &&
           (positions.length === 0 ? (
             empty('No open positions.')
           ) : (
-            <>
+            <div className="min-w-[760px]">
               {head(posCols, ['Symbol', 'Size', 'Entry', 'Mark', 'uPnL', 'rPnL', ''])}
               <div className="mono text-[12px]">
                 {positions.map((p) => (
@@ -183,14 +183,14 @@ export const BottomTabs = ({ refreshKey }: BottomTabsProps) => {
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           ))}
 
         {tab === 'orders' &&
           (openOrders.length === 0 ? (
             empty('No open orders.')
           ) : (
-            <>
+            <div className="min-w-[760px]">
               {head(ordCols, ['Symbol', 'Side', 'Type', 'Limit', 'Remaining', 'Status', ''])}
               <div className="mono text-[12px]">
                 {openOrders.map((o) => (
@@ -213,14 +213,14 @@ export const BottomTabs = ({ refreshKey }: BottomTabsProps) => {
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           ))}
 
         {tab === 'fills' &&
           (fills.length === 0 ? (
             empty('No fills yet.')
           ) : (
-            <>
+            <div className="min-w-[760px]">
               {head(fillCols, ['Symbol', 'Side', 'Qty', 'Exec Price', 'Slippage', 'Time'])}
               <div className="mono text-[12px]">
                 {fills.map((o) => (
@@ -238,7 +238,7 @@ export const BottomTabs = ({ refreshKey }: BottomTabsProps) => {
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           ))}
       </div>
     </div>
